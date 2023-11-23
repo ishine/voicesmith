@@ -1,14 +1,13 @@
 import torch
 import wandb
 import argparse
-from voice_smith.acoustic_training import train_acoustic
+from voice_smith.codec_training import train_codec
 from voice_smith.config.configs import (
     PreprocessingConfig,
-    AcousticPretrainingConfig,
-    AcousticENModelConfig,
+    VocoderPretrainingConfig,
+    VocoderModelConfig,
 )
 from voice_smith.utils.wandb_logger import WandBLogger
-from voice_smith.config.globals import TRAINING_RUNS_PATH, ASSETS_PATH
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -17,12 +16,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    logger = WandBLogger(
-        "DelightfulTTS SMALL parameters with UnsupDurAligner, no attn_prior, with_pitch, 80dim attn LJSpeech v3"
-    )
+    logger = WandBLogger("Codec Pretraining")
+    t_config = VocoderPretrainingConfig()
     p_config = PreprocessingConfig(language="english_only")
-    m_config = AcousticENModelConfig()
-    t_config = AcousticPretrainingConfig()
+    m_config = VocoderModelConfig()
+
     wandb.config.update(
         {
             "preprocess_config": p_config,
@@ -31,19 +29,13 @@ if __name__ == "__main__":
         },
         allow_val_change=True,
     )
-    train_acoustic(
+    train_codec(
         db_id=args.run_id,
-        training_run_name=str(args.run_id),
-        preprocess_config=p_config,
-        model_config=m_config,
         train_config=t_config,
+        model_config=m_config,
+        preprocess_config=p_config,
         logger=logger,
         device=device,
-        reset=False,
-        checkpoint_acoustic=args.checkpoint,
-        fine_tuning=False,
-        overwrite_saves=True,
-        assets_path=ASSETS_PATH,
-        training_runs_path=TRAINING_RUNS_PATH,
+        checkpoint_path=args.checkpoint,
     )
 
